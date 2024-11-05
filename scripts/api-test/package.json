@@ -1,0 +1,19 @@
+{
+    "name": "defillama-api-test",
+    "version": "1.0.0",
+    "description": "DeFiLlama API testing script",
+    "main": "dist/test-defillama-api.js",
+    "scripts": {
+      "build": "tsc",
+      "start": "ts-node test-defillama-api.ts",
+      "test": "ts-node test-defillama-api.ts"
+    },
+    "dependencies": {
+      "axios": "^1.6.2"
+    },
+    "devDependencies": {
+      "@types/node": "^20.9.4",
+      "ts-node": "^10.9.1",
+      "typescript": "^5.3.2"
+    }
+  }
