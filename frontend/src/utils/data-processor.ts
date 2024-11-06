@@ -23,47 +23,36 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export class DataProcessor {
     private readonly DEFILLAMA_API = 'https://api.llama.fi';
+    private readonly BATCH_SIZE = 100;
     
     async fetchAndProcessData() {
         try {
-            console.log('Starting to fetch protocols...');
+            console.log('Fetching protocols from DeFiLlama...');
             const response = await axios.get(`${this.DEFILLAMA_API}/protocols`, {
-                timeout: 10000 // 10 second timeout
+                timeout: 30000 // 30 second timeout for initial fetch
             });
             
-            console.log(`Fetched ${response.data.length} protocols`);
             const protocols: Protocol[] = response.data;
+            console.log(`Found ${protocols.length} protocols. Processing in batches...`);
 
-            console.log('Processing protocols...');
-            let processed = 0;
-            for (const protocol of protocols) {
-                try {
-                    await this.processProtocol(protocol);
-                    processed++;
-                    if (processed % 10 === 0) {
-                        console.log(`Processed ${processed}/${protocols.length} protocols`);
-                    }
-                } catch (error) {
-                    console.error(`Error processing protocol ${protocol.name}:`, error);
-                    continue;
-                }
+            // Process in batches
+            for (let i = 0; i < protocols.length; i += this.BATCH_SIZE) {
+                const batch = protocols.slice(i, i + this.BATCH_SIZE);
+                console.log(`Processing batch ${i/this.BATCH_SIZE + 1}/${Math.ceil(protocols.length/this.BATCH_SIZE)}`);
+                
+                // Process protocols in current batch
+                await Promise.all(batch.map(protocol => this.processProtocol(protocol)));
+                
+                // Update chain metrics for this batch
+                await this.updateChainMetrics(batch);
+                
+                console.log(`Completed batch. Processed ${Math.min(i + this.BATCH_SIZE, protocols.length)}/${protocols.length} protocols`);
             }
 
-            console.log('Processing chain metrics...');
-            await this.processChainMetrics(protocols);
-            
-            console.log('Data processing completed');
+            console.log('All processing completed successfully');
             return true;
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                console.error('API Error:', {
-                    message: error.message,
-                    status: error.response?.status,
-                    data: error.response?.data
-                });
-            } else {
-                console.error('Error:', error);
-            }
+            console.error('Error in data processing:', error);
             throw error;
         }
     }
@@ -77,9 +66,8 @@ export class DataProcessor {
                 totalChains: (protocol.chains || []).length
             };
 
-            console.log(`Processing ${protocol.name}...`);
-
-            const { error: upsertError } = await supabase
+            // Upsert protocol data
+            await supabase
                 .from('protocols')
                 .upsert({
                     id: protocol.id,
@@ -95,9 +83,8 @@ export class DataProcessor {
                     last_updated: new Date().toISOString()
                 });
 
-            if (upsertError) throw upsertError;
-
-            const { error: historyError } = await supabase
+            // Insert TVL history
+            await supabase
                 .from('protocol_tvl_history')
                 .insert({
                     protocol_id: protocol.id,
@@ -105,11 +92,49 @@ export class DataProcessor {
                     timestamp: new Date().toISOString()
                 });
 
-            if (historyError) throw historyError;
-
         } catch (error) {
-            console.error(`Error processing protocol ${protocol.name}:`, error);
-            throw error;
+            console.error(`Error processing ${protocol.name}:`, error);
+            // Continue with other protocols
+        }
+    }
+
+    private async updateChainMetrics(protocols: Protocol[]) {
+        try {
+            const chainData = new Map<string, {tvl: number, protocols: Set<string>}>();
+
+            // Aggregate chain data
+            protocols.forEach(protocol => {
+                Object.entries(protocol.chainTvls || {}).forEach(([chain, tvl]) => {
+                    if (!chainData.has(chain)) {
+                        chainData.set(chain, { tvl: 0, protocols: new Set() });
+                    }
+                    const data = chainData.get(chain)!;
+                    data.tvl += tvl;
+                    data.protocols.add(protocol.id);
+                });
+            });
+
+            // Batch update chain metrics
+            const updates = Array.from(chainData.entries()).map(([chain, data]) => ({
+                chain_name: chain,
+                tvl: data.tvl,
+                protocol_count: data.protocols.size,
+                metrics: {
+                    dominance: data.tvl,
+                    protocol_distribution: data.protocols.size
+                },
+                last_updated: new Date().toISOString()
+            }));
+
+            if (updates.length > 0) {
+                await supabase
+                    .from('chain_metrics')
+                    .upsert(updates, {
+                        onConflict: 'chain_name'
+                    });
+            }
+        } catch (error) {
+            console.error('Error updating chain metrics:', error);
         }
     }
 

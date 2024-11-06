@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 import path from 'path';
-import { DataProcessor } from '../src/utils/data-processor';  // Changed import syntax
+import { DataProcessor } from '../src/utils/data-processor';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -15,11 +15,11 @@ async function updateData() {
     try {
         console.log('Starting data update...');
         
-        // Add timeout to entire process
+        // Increased timeout to 30 minutes
         const timeout = setTimeout(() => {
-            console.error('Process timed out after 5 minutes');
+            console.error('Process timed out after 30 minutes');
             process.exit(1);
-        }, 300000); // 5 minutes timeout
+        }, 1800000);
 
         await processor.fetchAndProcessData();
         
