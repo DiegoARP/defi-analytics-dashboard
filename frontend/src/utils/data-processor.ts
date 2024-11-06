@@ -1,61 +1,70 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import { 
+    Protocol, 
+    HealthMetrics, 
+    RiskFactors, 
+    RiskPoints,
+    ChainMetrics 
+} from '../types/protocol';
 
-// Load environment variables
+
 dotenv.config();
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    throw new Error(
-        'Missing environment variables. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env'
-    );
+    throw new Error('Missing environment variables');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-interface Protocol {
-    id: string;
-    name: string;
-    description?: string;
-    symbol?: string;
-    url?: string;
-    tvl: number;
-    mcap?: number;
-    category?: string;
-    chainTvls: Record<string, number>;
-    change_1h?: number;
-    change_1d?: number;
-    change_7d?: number;
-    chains: string[];
-}
-
-class DataProcessor {
+export class DataProcessor {
     private readonly DEFILLAMA_API = 'https://api.llama.fi';
-
+    
     async fetchAndProcessData() {
         try {
-            console.log('Fetching data from DeFiLlama...');
-            const protocols = await this.fetchProtocols();
-            await this.processProtocols(protocols);
+            console.log('Starting to fetch protocols...');
+            const response = await axios.get(`${this.DEFILLAMA_API}/protocols`, {
+                timeout: 10000 // 10 second timeout
+            });
+            
+            console.log(`Fetched ${response.data.length} protocols`);
+            const protocols: Protocol[] = response.data;
+
+            console.log('Processing protocols...');
+            let processed = 0;
+            for (const protocol of protocols) {
+                try {
+                    await this.processProtocol(protocol);
+                    processed++;
+                    if (processed % 10 === 0) {
+                        console.log(`Processed ${processed}/${protocols.length} protocols`);
+                    }
+                } catch (error) {
+                    console.error(`Error processing protocol ${protocol.name}:`, error);
+                    continue;
+                }
+            }
+
+            console.log('Processing chain metrics...');
             await this.processChainMetrics(protocols);
-            console.log('Completed processing all data');
+            
+            console.log('Data processing completed');
+            return true;
         } catch (error) {
-            console.error('Error processing data:', error);
+            if (axios.isAxiosError(error)) {
+                console.error('API Error:', {
+                    message: error.message,
+                    status: error.response?.status,
+                    data: error.response?.data
+                });
+            } else {
+                console.error('Error:', error);
+            }
             throw error;
-        }
-    }
-
-    private async fetchProtocols(): Promise<Protocol[]> {
-        const response = await axios.get(`${this.DEFILLAMA_API}/protocols`);
-        return response.data;
-    }
-
-    private async processProtocols(protocols: Protocol[]) {
-        for (const protocol of protocols) {
-            await this.processProtocol(protocol);
         }
     }
 
@@ -63,12 +72,13 @@ class DataProcessor {
         try {
             const healthMetrics = this.calculateHealthMetrics(protocol);
             const chainData = {
-                chains: protocol.chains,
-                chainTvls: protocol.chainTvls,
-                totalChains: protocol.chains.length
+                chains: protocol.chains || [],
+                chainTvls: protocol.chainTvls || {},
+                totalChains: (protocol.chains || []).length
             };
 
-            // Update or insert protocol
+            console.log(`Processing ${protocol.name}...`);
+
             const { error: upsertError } = await supabase
                 .from('protocols')
                 .upsert({
@@ -87,7 +97,6 @@ class DataProcessor {
 
             if (upsertError) throw upsertError;
 
-            // Insert TVL history
             const { error: historyError } = await supabase
                 .from('protocol_tvl_history')
                 .insert({
@@ -106,11 +115,10 @@ class DataProcessor {
 
     private async processChainMetrics(protocols: Protocol[]) {
         try {
-            // Aggregate chain data
             const chainMetrics = new Map<string, any>();
 
             protocols.forEach(protocol => {
-                Object.entries(protocol.chainTvls).forEach(([chain, tvl]) => {
+                Object.entries(protocol.chainTvls || {}).forEach(([chain, tvl]) => {
                     if (!chainMetrics.has(chain)) {
                         chainMetrics.set(chain, {
                             tvl: 0,
@@ -125,10 +133,9 @@ class DataProcessor {
                 });
             });
 
-            // Calculate and store chain metrics
             for (const [chain, data] of chainMetrics.entries()) {
                 const metrics = {
-                    dominance: (data.tvl / protocols.reduce((sum, p) => sum + p.tvl, 0)) * 100,
+                    dominance: (data.tvl / protocols.reduce((sum, p) => sum + (p.tvl || 0), 0)) * 100,
                     protocol_distribution: data.protocols.size
                 };
 
@@ -150,8 +157,8 @@ class DataProcessor {
         }
     }
 
-    private calculateHealthMetrics(protocol: Protocol) {
-        const riskFactors = {
+    private calculateHealthMetrics(protocol: Protocol): HealthMetrics {
+        const riskFactors: RiskFactors = {
             tvlRisk: this.calculateTVLRisk(protocol.tvl),
             chainDiversification: this.calculateChainDiversification(protocol.chains.length),
             stabilityScore: this.calculateStabilityScore(protocol)
@@ -171,13 +178,13 @@ class DataProcessor {
         };
     }
 
-    private calculateTVLRisk(tvl: number): string {
+    private calculateTVLRisk(tvl: number): 'low' | 'medium' | 'high' {
         if (tvl > 1_000_000_000) return 'low';
         if (tvl > 100_000_000) return 'medium';
         return 'high';
     }
 
-    private calculateChainDiversification(chainCount: number): string {
+    private calculateChainDiversification(chainCount: number): 'low' | 'medium' | 'high' {
         if (chainCount > 5) return 'high';
         if (chainCount > 2) return 'medium';
         return 'low';
@@ -192,11 +199,11 @@ class DataProcessor {
             short_term: hourlyChange < 5 ? 'stable' : 'volatile',
             medium_term: dailyChange < 20 ? 'stable' : 'volatile',
             long_term: weeklyChange < 40 ? 'stable' : 'volatile'
-        };
+        } as const;
     }
 
-    private determineRiskLevel(riskFactors: any): string {
-        const riskPoints = {
+    private determineRiskLevel(riskFactors: RiskFactors): string {
+        const riskPoints: RiskPoints = {
             'low': 1,
             'medium': 2,
             'high': 3
