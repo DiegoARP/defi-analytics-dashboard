@@ -1,8 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+        'Missing environment variables. Please ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env'
+    );
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface Protocol {
