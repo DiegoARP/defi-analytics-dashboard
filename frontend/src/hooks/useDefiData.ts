@@ -10,10 +10,15 @@ import type {
     ChainDiversity 
 } from '@/types/charts';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export function useDefiData() {
     const [loading, setLoading] = useState(true);
@@ -28,15 +33,19 @@ export function useDefiData() {
     useEffect(() => {
         async function fetchData() {
             try {
+                console.log('Starting data fetch...');
                 setLoading(true);
-                
+
                 // Fetch protocols
                 const { data: protocols, error: protocolsError } = await supabase
                     .from('protocols')
                     .select('*')
                     .order('tvl', { ascending: false });
 
-                if (protocolsError) throw protocolsError;
+                if (protocolsError) {
+                    console.error('Protocol fetch error:', protocolsError);
+                    throw protocolsError;
+                }
 
                 // Fetch chain metrics
                 const { data: chainMetrics, error: chainError } = await supabase
@@ -44,9 +53,14 @@ export function useDefiData() {
                     .select('*')
                     .order('tvl', { ascending: false });
 
-                if (chainError) throw chainError;
+                if (chainError) {
+                    console.error('Chain metrics fetch error:', chainError);
+                    throw chainError;
+                }
 
-                // Process data for category distribution
+                console.log(`Fetched ${protocols?.length || 0} protocols and ${chainMetrics?.length || 0} chain metrics`);
+
+                // Process category distribution
                 const categoryMap = new Map<string, CategoryDistribution>();
                 protocols.forEach((protocol: Protocol) => {
                     const category = protocol.category || 'Other';
@@ -62,8 +76,7 @@ export function useDefiData() {
                     catData.protocol_count++;
                     catData.total_tvl += protocol.tvl;
                 });
-                
-                // Calculate averages and convert to array
+
                 const categoryData = Array.from(categoryMap.values()).map(cat => ({
                     ...cat,
                     avg_tvl: cat.total_tvl / cat.protocol_count
@@ -115,16 +128,19 @@ export function useDefiData() {
                     name: chain.chain_name,
                     tvl: chain.tvl,
                     chain_count: chain.protocol_count,
-                    risk_level: 'Medium' // You might want to calculate this based on your metrics
+                    risk_level: chain.metrics.stability || 'Medium'
                 }));
 
+                console.log('Setting processed data...');
                 setData({
                     categoryData,
                     tvlDistributionData: tvlDistribution,
                     riskDistributionData: riskDistribution,
                     chainDiversityData: chainDiversity
                 });
+
             } catch (err) {
+                console.error('Error in data fetching:', err);
                 setError(err instanceof Error ? err : new Error('An error occurred'));
             } finally {
                 setLoading(false);
@@ -133,12 +149,13 @@ export function useDefiData() {
 
         fetchData();
 
-        // Optional: Set up real-time subscription
+        // Set up real-time subscription
         const subscription = supabase
             .channel('protocol-updates')
             .on('postgres_changes', 
                 { event: '*', schema: 'public', table: 'protocols' },
-                () => {
+                (payload) => {
+                    console.log('Real-time update received:', payload);
                     fetchData(); // Refetch data when changes occur
                 }
             )

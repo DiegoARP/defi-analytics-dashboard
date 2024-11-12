@@ -2,6 +2,14 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
+    <div>
+      <h1>Home Page</h1>
+    </div>
+  )
+}
+
+/* export default function Home() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <h1 className="text-4xl font-bold mb-4">DeFi Analytics Platform</h1>
@@ -14,4 +22,4 @@ export default function Home() {
       </div>
     </div>
   )
-}
+} */
