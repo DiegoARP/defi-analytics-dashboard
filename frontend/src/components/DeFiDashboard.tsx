@@ -1,14 +1,34 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     CategoryTVLChart,
     TVLDistributionChart,
     RiskDistributionChart,
     ChainDiversityChart
 } from './charts/DeFiCharts';
-import { CategoryDistribution, TVLDistribution, RiskDistribution, ChainDiversity } from '@/types/charts';
-import { TrendingUp, TrendingDown, BarChart2, Shield } from 'lucide-react';
+import { 
+    TrendingUp, 
+    TrendingDown, 
+    BarChart2, 
+    Shield, 
+    Activity, 
+    DollarSign 
+} from 'lucide-react';
+import type { 
+    CategoryDistribution, 
+    TVLDistribution, 
+    RiskDistribution, 
+    ChainDiversity 
+} from '@/types/charts';
 
 interface DeFiDashboardProps {
     categoryData: CategoryDistribution[];
@@ -17,40 +37,59 @@ interface DeFiDashboardProps {
     chainDiversityData: ChainDiversity[];
 }
 
+// StatCard Component
 const StatCard = ({ 
     title, 
     value, 
     change, 
-    trend 
+    trend,
+    icon 
 }: { 
     title: string; 
     value: string; 
     change?: number; 
-    trend?: 'up' | 'down' 
+    trend?: 'up' | 'down';
+    icon: React.ReactNode;
 }) => (
-    <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <h3 className="text-gray-500 text-sm font-medium mb-2">{title}</h3>
-        <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-gray-900">{value}</span>
-            {change && (
-                <span className={`flex items-center text-sm ${
-                    trend === 'up' ? 'text-emerald-600' : 'text-red-600'
-                }`}>
-                    {trend === 'up' ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                    {Math.abs(change)}%
-                </span>
-            )}
-        </div>
-    </div>
+    <Card className="hover:shadow-lg transition-all">
+        <CardContent className="pt-6">
+            <div className="flex items-center justify-between space-x-4">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm text-muted-foreground">{title}</span>
+                    <span className="text-2xl font-bold tracking-tight">{value}</span>
+                    {change && (
+                        <div className="flex items-center space-x-1">
+                            {trend === 'up' ? (
+                                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                                <TrendingDown className="w-4 h-4 text-red-500" />
+                            )}
+                            <span className={`text-sm ${
+                                trend === 'up' ? 'text-emerald-500' : 'text-red-500'
+                            }`}>
+                                {change}%
+                            </span>
+                        </div>
+                    )}
+                </div>
+                <div className="p-2 bg-primary/10 rounded-full">
+                    {icon}
+                </div>
+            </div>
+        </CardContent>
+    </Card>
 );
 
+// Main Dashboard Component
 const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
     categoryData,
     tvlDistributionData,
     riskDistributionData,
     chainDiversityData
 }) => {
-    // Calculate dynamic insights
+    const [timeframe, setTimeframe] = useState('24h');
+
+    // Calculate insights using your existing logic
     const insights = useMemo(() => {
         const totalTVL = categoryData.reduce((sum, cat) => sum + cat.total_tvl, 0);
         const topCategories = [...categoryData]
@@ -73,74 +112,132 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
     }, [categoryData, riskDistributionData]);
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="min-h-screen bg-background p-6">
+            <div className="max-w-[1400px] mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-2xl font-bold text-gray-900">DeFi Analytics Dashboard</h1>
-                    <p className="text-gray-500">Real-time insights across protocols and chains</p>
+                <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-bold tracking-tight">DeFi Analytics Dashboard</h1>
+                        <p className="text-muted-foreground">
+                            Real-time insights across protocols and chains
+                        </p>
+                    </div>
+                    <Select value={timeframe} onValueChange={setTimeframe}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Timeframe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="24h">Last 24 hours</SelectItem>
+                            <SelectItem value="7d">Last 7 days</SelectItem>
+                            <SelectItem value="30d">Last 30 days</SelectItem>
+                            <SelectItem value="all">All time</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
-                {/* Key Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Stats Grid */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <StatCard 
-                        title="Total Value Locked" 
+                        title="Total Value Locked"
                         value={`$${insights.totalTVL}B`}
                         change={2.3}
                         trend="up"
+                        icon={<DollarSign className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Top Category" 
+                        title="Top Category"
                         value={insights.topCategory?.category || '-'}
                         change={Number(insights.categoryConcentration)}
                         trend="up"
+                        icon={<BarChart2 className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Safety Score" 
+                        title="Safety Score"
                         value={`${insights.safetyScore}%`}
+                        icon={<Shield className="w-6 h-6" />}
                     />
                     <StatCard 
-                        title="Active Chains" 
+                        title="Active Chains"
                         value={chainDiversityData.length.toString()}
+                        icon={<Activity className="w-6 h-6" />}
                     />
                 </div>
 
-                {/* Main Charts Grid */}
-                <div className="grid lg:grid-cols-2 gap-6">
-                    {/* TVL Distribution */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
-                        <div className="flex items-start justify-between mb-6">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">TVL Distribution</h2>
-                                <p className="text-sm text-gray-500">Value concentration across protocols</p>
+                {/* Charts Grid */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* TVL Distribution Chart */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>TVL Distribution</CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                        Value concentration across protocols
+                                    </p>
+                                </div>
+                                <BarChart2 className="w-4 h-4 text-muted-foreground" />
                             </div>
-                            <BarChart2 className="text-blue-500" />
-                        </div>
-                        <TVLDistributionChart data={tvlDistributionData} />
-                    </div>
+                        </CardHeader>
+                        <CardContent>
+                            <TVLDistributionChart data={tvlDistributionData} />
+                        </CardContent>
+                    </Card>
 
-                    {/* Risk Analysis */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm">
-                        <div className="flex items-start justify-between mb-6">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">Risk Analysis</h2>
-                                <p className="text-sm text-gray-500">Protocol risk distribution</p>
+                    {/* Risk Analysis Chart */}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Risk Analysis</CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                        Protocol risk distribution
+                                    </p>
+                                </div>
+                                <Shield className="w-4 h-4 text-muted-foreground" />
                             </div>
-                            <Shield className="text-emerald-500" />
-                        </div>
-                        <RiskDistributionChart data={riskDistributionData} />
-                    </div>
+                        </CardHeader>
+                        <CardContent>
+                            <RiskDistributionChart data={riskDistributionData} />
+                        </CardContent>
+                    </Card>
 
-                    {/* Categories */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm lg:col-span-2">
-                        <div className="flex items-start justify-between mb-6">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">Protocol Categories</h2>
-                                <p className="text-sm text-gray-500">TVL distribution across categories</p>
+                    {/* Protocol Categories Chart */}
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <CardTitle>Protocol Categories</CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                        TVL distribution across categories
+                                    </p>
+                                </div>
+                                <Activity className="w-4 h-4 text-muted-foreground" />
                             </div>
-                        </div>
-                        <CategoryTVLChart data={categoryData} />
-                    </div>
+                        </CardHeader>
+                        <CardContent>
+                            <CategoryTVLChart data={categoryData} />
+                        </CardContent>
+                    </Card>
+
+                    {/* Chain Diversity Chart (Conditional Rendering) */}
+                    {chainDiversityData.length > 0 && (
+                        <Card className="lg:col-span-2">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle>Chain Diversity</CardTitle>
+                                        <p className="text-sm text-muted-foreground">
+                                            Distribution across blockchain networks
+                                        </p>
+                                    </div>
+                                    <Activity className="w-4 h-4 text-muted-foreground" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <ChainDiversityChart data={chainDiversityData} />
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
         </div>
