@@ -157,6 +157,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-[Diego] - [@]
+[Diego] - [/@]
 
 Project Link: [https://github.com/DiegoARP/defi-analytics-dashboard](https://github.com/yourusername/defi-analytics-dashboard)
