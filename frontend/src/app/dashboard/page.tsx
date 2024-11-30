@@ -6,11 +6,15 @@ import DeFiDashboard from '@/components/DeFiDashboard';
 import { useDefiData } from '@/hooks/useDefiData';
 
 function DashboardContent() {
-  console.log('Dashboard Content Rendering');
-  const timestamp = Date.now(); // Force re-render
   const { data, loading, error } = useDefiData();
 
-  console.log('Dashboard State:', { loading, error, hasData: !!data });
+  console.log('Dashboard State:', { 
+    loading, 
+    error, 
+    hasData: !!data,
+    categoryDataLength: data?.categoryData?.length,
+    tvlDistDataLength: data?.tvlDistributionData?.length
+  });
 
   if (loading) {
     return (
@@ -18,6 +22,7 @@ function DashboardContent() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           <p className="mt-4">Loading dashboard data...</p>
+          <p className="text-sm text-gray-500">Fetching protocol data...</p>
         </div>
       </div>
     );
@@ -36,17 +41,7 @@ function DashboardContent() {
     );
   }
 
-  if (!data) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center text-gray-600">
-          No data available
-        </div>
-      </div>
-    );
-  }
-
-  return <div key={timestamp}><DeFiDashboard {...data} /></div>;
+  return <DeFiDashboard {...data} />;
 }
 
 export default function DashboardPage() {

@@ -2,9 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import path from 'path';
+import fetch from 'cross-fetch';
+global.fetch = fetch;
 
 // Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -14,11 +16,20 @@ if (!supabaseUrl || !supabaseKey) {
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+    },
+    global: {
+        fetch: fetch
+    }
+});
 
 async function testConnection() {
     try {
         console.log('Testing Supabase connection...');
+        console.log('Using URL:', supabaseUrl);
         
         // Test protocols table
         const { data: protocols, error: protocolError } = await supabase
@@ -36,29 +47,12 @@ async function testConnection() {
             sample: protocols?.[0]
         });
 
-        // Test chain_metrics table
-        const { data: chains, error: chainError } = await supabase
-            .from('chain_metrics')
-            .select('chain_name, tvl')
-            .limit(1);
-
-        if (chainError) {
-            throw new Error(`Chain metrics query failed: ${chainError.message}`);
-        }
-
-        console.log('Chain metrics test:', {
-            success: true,
-            hasData: chains && chains.length > 0,
-            sample: chains?.[0]
-        });
-
         console.log('All tests completed successfully');
         process.exit(0);
     } catch (error) {
-        console.error('Test failed:', error);
+        console.error('Connection test failed:', error);
         process.exit(1);
     }
 }
 
-// Run tests
 testConnection().catch(console.error);

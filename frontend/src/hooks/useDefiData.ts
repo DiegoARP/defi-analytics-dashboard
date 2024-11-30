@@ -8,16 +8,20 @@ import type {
     RiskDistribution, 
     ChainDiversity 
 } from '@/types/charts';
+import type { DeFiDashboardProps } from '@/components/DeFiDashboard';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false
+    },
+    global: {
+        fetch: fetch.bind(globalThis)
+    }
+});
 
 // Immediate connection test
 (async () => {
@@ -37,87 +41,47 @@ const supabase = createClient(supabaseUrl, supabaseKey);
     }
 })();
 
+let cachedData: DeFiDashboardProps | null = null;
+
 export function useDefiData() {
-    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<DeFiDashboardProps>(cachedData || {
+        categoryData: [],
+        tvlDistributionData: [],
+        riskDistributionData: [],
+        chainDiversityData: []
+    });
+    const [loading, setLoading] = useState(!cachedData);
     const [error, setError] = useState<Error | null>(null);
-    const [data, setData] = useState<{
-        categoryData: CategoryDistribution[];
-        tvlDistributionData: TVLDistribution[];
-        riskDistributionData: RiskDistribution[];
-        chainDiversityData: ChainDiversity[];
-    } | null>(null);
 
     useEffect(() => {
-        console.log('useEffect triggered in useDefiData');
-        let isMounted = true;
+        if (cachedData) {
+            setData(cachedData);
+            setLoading(false);
+            return;
+        }
 
         async function fetchData() {
             try {
-                console.log('fetchData function started');
-                if (!isMounted) return;
-
-                setLoading(true);
-                console.log('Loading state set to true');
-
-                // Test database connection
-                const { data: testData, error: testError } = await supabase
+                console.log('Fetching data...');
+                
+                // Fetch protocols with specific columns
+                const { data: protocols, error: protocolError } = await supabase
                     .from('protocols')
-                    .select('id')
-                    .limit(1);
+                    .select(`
+                        id,
+                        name,
+                        category,
+                        tvl,
+                        chain_data,
+                        health_metrics
+                    `);
 
-                if (testError) {
-                    throw new Error(`Database connection test failed: ${testError.message}`);
-                }
-
-                console.log('Database connection test successful:', !!testData);
-
-                // Fetch protocols
-                console.log('Fetching protocols...');
-                const { data: protocols, error: protocolsError } = await supabase
-                    .from('protocols')
-                    .select('*')
-                    .order('tvl', { ascending: false })
-                    .throwOnError();
-
-                if (protocolsError) {
-                    console.error('Protocol fetch error:', protocolsError);
-                    throw protocolsError;
-                }
-
-                console.log(`Successfully fetched ${protocols?.length || 0} protocols`);
-                if (protocols?.[0]) {
-                    console.log('Sample protocol data:', {
-                        id: protocols[0].id,
-                        name: protocols[0].name,
-                        tvl: protocols[0].tvl
-                    });
-                }
-
-                // Fetch chain metrics
-                console.log('Fetching chain metrics...');
-                const { data: chainMetrics, error: chainError } = await supabase
-                    .from('chain_metrics')
-                    .select('*')
-                    .order('tvl', { ascending: false })
-                    .throwOnError();
-
-                if (chainError) {
-                    console.error('Chain metrics fetch error:', chainError);
-                    throw chainError;
-                }
-
-                console.log(`Successfully fetched ${chainMetrics?.length || 0} chain metrics`);
-                if (chainMetrics?.[0]) {
-                    console.log('Sample chain metric:', {
-                        chain: chainMetrics[0].chain_name,
-                        tvl: chainMetrics[0].tvl
-                    });
-                }
+                if (protocolError) throw protocolError;
+                console.log('Fetched protocols:', protocols?.length);
 
                 // Process category distribution
-                console.log('Processing category distribution...');
                 const categoryMap = new Map<string, CategoryDistribution>();
-                protocols.forEach((protocol: Protocol) => {
+                protocols?.forEach((protocol: any) => {
                     const category = protocol.category || 'Other';
                     if (!categoryMap.has(category)) {
                         categoryMap.set(category, {
@@ -129,127 +93,98 @@ export function useDefiData() {
                     }
                     const catData = categoryMap.get(category)!;
                     catData.protocol_count++;
-                    catData.total_tvl += protocol.tvl;
+                    catData.total_tvl += Number(protocol.tvl) || 0;
                 });
 
-                const categoryData = Array.from(categoryMap.values()).map(cat => ({
-                    ...cat,
-                    avg_tvl: cat.total_tvl / cat.protocol_count
-                }));
+                const categoryData = Array.from(categoryMap.values())
+                    .map(cat => ({
+                        ...cat,
+                        avg_tvl: cat.total_tvl / cat.protocol_count
+                    }))
+                    .sort((a, b) => b.total_tvl - a.total_tvl);
 
-                console.log(`Processed ${categoryData.length} categories`);
+                console.log('Category data processed:', categoryData.length);
 
                 // Process TVL distribution
-                console.log('Processing TVL distribution...');
-                const tvlRanges = {
-                    'Above $1B': { min: 1e9, max: Infinity },
-                    '$100M-$1B': { min: 1e8, max: 1e9 },
-                    '$10M-$100M': { min: 1e7, max: 1e8 },
-                    'Below $10M': { min: 0, max: 1e7 }
-                };
+                const tvlRanges = [
+                    { min: 0, max: 1e6, label: '0-1M' },
+                    { min: 1e6, max: 10e6, label: '1M-10M' },
+                    { min: 10e6, max: 100e6, label: '10M-100M' },
+                    { min: 100e6, max: Infinity, label: '100M+' }
+                ];
 
-                const tvlDistribution = Object.entries(tvlRanges).map(([range, { min, max }]) => {
-                    const protocolsInRange = protocols.filter(
-                        (p: Protocol) => p.tvl >= min && p.tvl < max
+                const tvlDistributionData = tvlRanges.map(range => {
+                    const protocolsInRange = protocols?.filter(
+                        (p: any) => Number(p.tvl) >= range.min && Number(p.tvl) < range.max
                     );
                     return {
-                        tvl_range: range,
-                        protocol_count: protocolsInRange.length,
-                        total_tvl: protocolsInRange.reduce((sum, p) => sum + p.tvl, 0)
+                        tvl_range: range.label,
+                        protocol_count: protocolsInRange?.length || 0,
+                        total_tvl: protocolsInRange?.reduce((sum: number, p: any) => sum + (Number(p.tvl) || 0), 0) || 0
                     };
                 });
 
-                console.log('TVL distribution processed:', tvlDistribution);
-
                 // Process risk distribution
-                console.log('Processing risk distribution...');
-                const riskMap = new Map<string, RiskDistribution>();
-                protocols.forEach((protocol: Protocol) => {
-                    const risk = protocol.health_metrics.risk_level;
-                    if (!riskMap.has(risk)) {
-                        riskMap.set(risk, {
-                            risk_level: risk,
-                            protocol_count: 0,
-                            total_tvl: 0,
+                const riskDistributionData = protocols?.reduce((acc: any[], protocol: any) => {
+                    const riskLevel = protocol.health_metrics?.risk_level || 'Medium';
+                    const existing = acc.find(item => item.risk_level === riskLevel);
+                    if (existing) {
+                        existing.protocol_count++;
+                        existing.total_tvl += Number(protocol.tvl) || 0;
+                    } else {
+                        acc.push({
+                            risk_level: riskLevel,
+                            protocol_count: 1,
+                            total_tvl: Number(protocol.tvl) || 0,
                             avg_tvl: 0
                         });
                     }
-                    const riskData = riskMap.get(risk)!;
-                    riskData.protocol_count++;
-                    riskData.total_tvl += protocol.tvl;
-                });
-
-                const riskDistribution = Array.from(riskMap.values()).map(risk => ({
+                    return acc;
+                }, []).map(risk => ({
                     ...risk,
                     avg_tvl: risk.total_tvl / risk.protocol_count
                 }));
 
-                console.log('Risk distribution processed:', riskDistribution);
-
                 // Process chain diversity
-                console.log('Processing chain diversity...');
-                const chainDiversity = chainMetrics.map((chain: ChainMetrics) => ({
-                    name: chain.chain_name,
-                    tvl: chain.tvl,
-                    chain_count: chain.protocol_count,
-                    risk_level: chain.metrics.stability || 'Medium'
-                }));
-
-                console.log(`Processed ${chainDiversity.length} chains`);
-
-                if (isMounted) {
-                    // Set final processed data
-                    const processedData = {
-                        categoryData,
-                        tvlDistributionData: tvlDistribution,
-                        riskDistributionData: riskDistribution,
-                        chainDiversityData: chainDiversity
-                    };
-
-                    console.log('Setting final data with summary:', {
-                        categories: processedData.categoryData.length,
-                        tvlDistribution: processedData.tvlDistributionData.length,
-                        riskDistribution: processedData.riskDistributionData.length,
-                        chainDiversity: processedData.chainDiversityData.length
+                const chainMap = new Map();
+                protocols?.forEach((protocol: any) => {
+                    const chains = protocol.chain_data?.chains || [];
+                    chains.forEach((chain: string) => {
+                        if (!chainMap.has(chain)) {
+                            chainMap.set(chain, {
+                                name: chain,
+                                tvl: 0,
+                                chain_count: 0,
+                                risk_level: 'Medium'
+                            });
+                        }
+                        const chainData = chainMap.get(chain);
+                        chainData.tvl += Number(protocol.tvl) || 0;
+                        chainData.chain_count++;
                     });
+                });
 
-                    setData(processedData);
-                }
-            } catch (err) {
-                console.error('Error in fetchData:', err);
-                if (isMounted) {
-                    setError(err instanceof Error ? err : new Error('An error occurred'));
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                    console.log('Loading state set to false');
-                }
+                const chainDiversityData = Array.from(chainMap.values())
+                    .sort((a, b) => b.tvl - a.tvl)
+                    .slice(0, 20); // Top 20 chains
+
+                console.log('Setting processed data...');
+                cachedData = {
+                    categoryData,
+                    tvlDistributionData,
+                    riskDistributionData,
+                    chainDiversityData
+                };
+                setData(cachedData);
+                setLoading(false);
+            } catch (err: any) {
+                console.error('Error fetching data:', err);
+                setError(err);
+                setLoading(false);
             }
         }
 
-        console.log('Calling fetchData function');
         fetchData();
-
-        // Set up real-time subscription
-        const subscription = supabase
-            .channel('protocol-updates')
-            .on('postgres_changes', 
-                { event: '*', schema: 'public', table: 'protocols' },
-                (payload) => {
-                    console.log('Real-time update received:', payload);
-                    if (isMounted) {
-                        fetchData();
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            console.log('useEffect cleanup - component unmounting');
-            isMounted = false;
-            subscription.unsubscribe();
-        };
     }, []);
 
     return { data, loading, error };

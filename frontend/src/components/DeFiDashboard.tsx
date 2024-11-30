@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
     Select,
     SelectContent,
@@ -30,7 +30,7 @@ import type {
     ChainDiversity 
 } from '@/types/charts';
 
-interface DeFiDashboardProps {
+export interface DeFiDashboardProps {
     categoryData: CategoryDistribution[];
     tvlDistributionData: TVLDistribution[];
     riskDistributionData: RiskDistribution[];
@@ -82,15 +82,24 @@ const StatCard = ({
 
 // Main Dashboard Component
 const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
-    categoryData,
-    tvlDistributionData,
-    riskDistributionData,
-    chainDiversityData
+    categoryData = [],
+    tvlDistributionData = [],
+    riskDistributionData = [],
+    chainDiversityData = []
 }) => {
     const [timeframe, setTimeframe] = useState('24h');
 
-    // Calculate insights using your existing logic
+    // Calculate insights using your existing logic with null checks
     const insights = useMemo(() => {
+        if (!categoryData?.length || !riskDistributionData?.length) {
+            return {
+                totalTVL: '0',
+                topCategory: null,
+                categoryConcentration: '0',
+                safetyScore: '0'
+            };
+        }
+
         const totalTVL = categoryData.reduce((sum, cat) => sum + cat.total_tvl, 0);
         const topCategories = [...categoryData]
             .sort((a, b) => b.total_tvl - a.total_tvl)
@@ -101,15 +110,27 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
             [risk.risk_level]: risk.total_tvl
         }), {} as Record<string, number>);
         
-        const safetyScore = ((riskTVL['Low'] + riskTVL['Medium']) / totalTVL * 100).toFixed(1);
+        const safetyScore = ((riskTVL['Low'] || 0 + riskTVL['Medium'] || 0) / totalTVL * 100).toFixed(1);
         
         return {
             totalTVL: (totalTVL / 1e9).toFixed(2),
-            topCategory: topCategories[0],
-            categoryConcentration: ((topCategories[0].total_tvl / totalTVL) * 100).toFixed(1),
+            topCategory: topCategories[0] || null,
+            categoryConcentration: ((topCategories[0]?.total_tvl || 0) / totalTVL * 100).toFixed(1),
             safetyScore
         };
     }, [categoryData, riskDistributionData]);
+
+    // Add loading state check
+    if (!categoryData?.length || !tvlDistributionData?.length) {
+        return (
+            <div className="min-h-screen flex items-center justify-center p-4">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                    <p className="mt-4">Loading dashboard data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background p-6">
@@ -164,81 +185,53 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                 </div>
 
                 {/* Charts Grid */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    {/* TVL Distribution Chart */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>TVL Distribution</CardTitle>
-                                    <p className="text-sm text-muted-foreground">
-                                        Value concentration across protocols
-                                    </p>
-                                </div>
-                                <BarChart2 className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <TVLDistributionChart data={tvlDistributionData} />
-                        </CardContent>
-                    </Card>
+                {categoryData.length > 0 && (
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        {/* TVL Distribution Chart */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>TVL Distribution</CardTitle>
+                                <CardDescription>Value concentration across protocols</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[250px]">
+                                <TVLDistributionChart data={tvlDistributionData} />
+                            </CardContent>
+                        </Card>
 
-                    {/* Risk Analysis Chart */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Risk Analysis</CardTitle>
-                                    <p className="text-sm text-muted-foreground">
-                                        Protocol risk distribution
-                                    </p>
-                                </div>
-                                <Shield className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <RiskDistributionChart data={riskDistributionData} />
-                        </CardContent>
-                    </Card>
+                        {/* Risk Analysis Chart */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Risk Analysis</CardTitle>
+                                <CardDescription>Protocol risk distribution</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <RiskDistributionChart data={riskDistributionData} />
+                            </CardContent>
+                        </Card>
 
-                    {/* Protocol Categories Chart */}
-                    <Card className="lg:col-span-2">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle>Protocol Categories</CardTitle>
-                                    <p className="text-sm text-muted-foreground">
-                                        TVL distribution across categories
-                                    </p>
-                                </div>
-                                <Activity className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <CategoryTVLChart data={categoryData} />
-                        </CardContent>
-                    </Card>
-
-                    {/* Chain Diversity Chart (Conditional Rendering) */}
-                    {chainDiversityData.length > 0 && (
+                        {/* Protocol Categories Chart */}
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <CardTitle>Chain Diversity</CardTitle>
-                                        <p className="text-sm text-muted-foreground">
-                                            Distribution across blockchain networks
-                                        </p>
-                                    </div>
-                                    <Activity className="w-4 h-4 text-muted-foreground" />
-                                </div>
+                                <CardTitle>Protocol Categories</CardTitle>
+                                <CardDescription>TVL distribution across categories</CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="h-[400px]">
+                                <CategoryTVLChart data={categoryData} />
+                            </CardContent>
+                        </Card>
+
+                        {/* Chain Diversity Chart */}
+                        <Card className="lg:col-span-2">
+                            <CardHeader>
+                                <CardTitle>Chain Diversity</CardTitle>
+                                <CardDescription>Distribution across blockchain networks</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[400px]">
                                 <ChainDiversityChart data={chainDiversityData} />
                             </CardContent>
                         </Card>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

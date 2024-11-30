@@ -5,8 +5,31 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          commons: {
+            name: 'commons',
+            chunks: 'all',
+            minChunks: 2,
+          },
+        },
+      };
+    }
+    return config;
+  },
   experimental: {
     optimizeCss: true,
+    turbo: {
+      loaders: {
+        '.ts': ['swc-loader'],
+        '.tsx': ['swc-loader'],
+      },
+    },
   }
 }
 

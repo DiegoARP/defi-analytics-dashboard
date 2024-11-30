@@ -12,7 +12,8 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell
+    Cell,
+    Label
 } from 'recharts';
 import { 
     CategoryDistribution, 
@@ -50,7 +51,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <p className="font-medium">{label}</p>
             {payload.map((entry: any, index: number) => (
                 <p key={index} className="text-sm text-muted-foreground">
-                    {entry.name}: {entry.name.includes('TVL') ? formatTVL(entry.value) : entry.value}
+                    <span className="inline-block w-24">{entry.name}:</span>
+                    {entry.name.toLowerCase().includes('tvl') 
+                        ? formatTVL(entry.value)
+                        : entry.value}
                 </p>
             ))}
         </div>
@@ -102,36 +106,66 @@ export const CategoryTVLChart: React.FC<{ data: CategoryDistribution[] }> = ({ d
 };
 
 export const TVLDistributionChart: React.FC<{ data: TVLDistribution[] }> = ({ data }) => {
-    if (!data?.length) return (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-            No data available
-        </div>
-    );
+    const totalTVL = data.reduce((sum, item) => sum + item.total_tvl, 0);
+    
+    // Format data to show proper ranges
+    const formattedData = data.map(item => ({
+        ...item,
+        name: `${item.tvl_range} (${((item.total_tvl / totalTVL) * 100).toFixed(1)}%)`,
+        displayValue: formatTVL(item.total_tvl)
+    }));
 
     return (
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height="100%">
             <PieChart>
                 <Pie
-                    data={data}
+                    data={formattedData}
                     dataKey="total_tvl"
-                    nameKey="tvl_range"
+                    nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={120}
-                    label={({name, value}) => `${name}: ${formatTVL(value)}`}
-                    labelLine={false}
+                    innerRadius={35}
+                    outerRadius={65}
+                    paddingAngle={2}
                 >
-                    {data.map((_, index) => (
+                    {formattedData.map((entry, index) => (
                         <Cell 
                             key={`cell-${index}`} 
                             fill={COLORS.chart[index % COLORS.chart.length]}
-                            className="stroke-background"
-                            strokeWidth={2}
+                            strokeWidth={1}
                         />
                     ))}
+                    <Label
+                        value={`Total\n${formatTVL(totalTVL)}`}
+                        position="center"
+                        className="text-xs font-medium"
+                    />
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
+                <Tooltip 
+                    content={({ active, payload }) => {
+                        if (!active || !payload?.[0]) return null;
+                        const data = payload[0].payload;
+                        return (
+                            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                <p className="text-sm font-medium">{data.tvl_range}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    TVL: {data.displayValue}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Protocols: {data.protocol_count}
+                                </p>
+                            </div>
+                        );
+                    }}
+                />
+                <Legend 
+                    layout="vertical" 
+                    align="right"
+                    verticalAlign="middle"
+                    wrapperStyle={{ paddingLeft: '10px' }}
+                    iconSize={8}
+                    fontSize={12}
+                />
             </PieChart>
         </ResponsiveContainer>
     );
@@ -148,25 +182,40 @@ export const RiskDistributionChart: React.FC<{ data: RiskDistribution[] }> = ({ 
         <ResponsiveContainer width="100%" height={350}>
             <BarChart
                 data={data}
-                margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
+                margin={{ top: 20, right: 30, left: 40, bottom: 20 }}
             >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted/20" />
                 <XAxis 
                     dataKey="risk_level"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                 />
                 <YAxis 
                     yAxisId="left" 
                     tickFormatter={formatTVL}
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ 
+                        value: 'Total Value Locked (TVL)', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        style: { fontSize: '12px' }
+                    }}
                 />
                 <YAxis 
                     yAxisId="right" 
                     orientation="right"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    label={{ 
+                        value: 'Number of Protocols', 
+                        angle: 90, 
+                        position: 'insideRight',
+                        style: { fontSize: '12px' }
+                    }}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
+                <Legend 
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                    align="center"
+                />
                 <Bar 
                     yAxisId="left" 
                     dataKey="total_tvl" 
