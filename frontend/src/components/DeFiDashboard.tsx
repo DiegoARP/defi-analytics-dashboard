@@ -193,7 +193,7 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                                 <CardTitle>TVL Distribution</CardTitle>
                                 <CardDescription>Value concentration across protocols</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[250px]">
+                            <CardContent className="h-[220px]">
                                 <TVLDistributionChart data={tvlDistributionData} />
                             </CardContent>
                         </Card>
@@ -202,9 +202,9 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                         <Card>
                             <CardHeader>
                                 <CardTitle>Risk Analysis</CardTitle>
-                                <CardDescription>Protocol risk distribution</CardDescription>
+                                <CardDescription>Protocol risk distribution by TVL and count</CardDescription>
                             </CardHeader>
-                            <CardContent className="h-[300px]">
+                            <CardContent className="h-[280px]">
                                 <RiskDistributionChart data={riskDistributionData} />
                             </CardContent>
                         </Card>
