@@ -146,7 +146,8 @@ export function useDefiData() {
                 }
                 const catData = categoryMap.get(category)!;
                 catData.protocol_count++;
-                catData.total_tvl += Number(protocol.tvl) || 0;
+                const tvl = Number(protocol.tvl) || 0;
+                catData.total_tvl += tvl;
             });
 
             const categoryData = Array.from(categoryMap.values())
@@ -244,6 +245,7 @@ export function useDefiData() {
 
             console.log('Setting processed data...');
             const totalTVL = categoryData.reduce((sum, cat) => sum + cat.total_tvl, 0);
+            const formattedTVL = (totalTVL / 1e9).toFixed(2); // Convert to billions
             const safetyScore = ((riskDistributionData.find(r => r.risk_level === 'Low')?.total_tvl || 0) + 
                                  (riskDistributionData.find(r => r.risk_level === 'Medium')?.total_tvl || 0)) / totalTVL * 100;
 

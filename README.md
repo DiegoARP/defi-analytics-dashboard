@@ -1,132 +1,60 @@
 # DeFi Analytics Dashboard 🚀
 
-A real-time analytics platform for monitoring and analyzing the DeFi ecosystem, providing comprehensive insights into protocols, chains, and market trends.
+A real-time analytics platform for monitoring and analyzing the decentralized finance ecosystem, powered by DeFiLlama data.
 
-## Overview
+![DeFi Analytics Dashboard](./public/dashboard-preview.png)
 
-This platform aggregates and analyzes data from multiple DeFi protocols across various blockchain networks, offering:
+## Features
 
-- Real-time TVL (Total Value Locked) tracking
-- Protocol health monitoring
-- Cross-chain analytics
-- Risk assessment metrics
-- Historical trend analysis
+### Real-time Analytics
+- 📊 Live TVL tracking across protocols
+- 📈 Historical trends visualization
+- 🔄 Protocol comparison tool
+- 🌐 Cross-chain analytics
 
-## Technical Architecture
+### Risk Analysis
+- 🛡️ Protocol safety scoring
+- 📊 Risk distribution metrics
+- 🔍 TVL concentration analysis
+- 🔗 Chain diversity tracking
 
-### Data Collection Layer
-- **Source**: DeFiLlama API
-- **Frequency**: Real-time data collection
-- **Processing**: Batch processing of 100 protocols simultaneously
-- **Storage**: Supabase (PostgreSQL)
+### Market Intelligence
+- 📰 DeFi news feed
+- 📉 Historical performance
+- 🎯 Category insights
+- 💹 Growth indicators
 
-### Database Schema
-```sql
-protocols           - Core protocol information and metrics
-protocol_tvl_history - Historical TVL tracking
-chain_metrics       - Chain-specific analytics
-protocol_summary    - Aggregated protocol insights (View)
-```
+## Tech Stack
 
-### Tech Stack
-```
-Frontend:
-- Next.js 14
-- TypeScript
-- TailwindCSS
-- Chart libraries (coming soon)
+### Frontend
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + Shadcn/UI
+- **Charts**: Recharts
+- **State**: React Hooks
 
-Backend:
-- Supabase
-- Node.js
-- TypeScript
-
-Data Processing:
-- Custom ETL pipeline
-- Batch processing
-- Real-time updates
-```
-
-## Current Features
-
-### Protocol Analytics
-- TVL tracking and history
-- Risk assessment metrics
-- Chain diversity analysis
-- Health scoring system
-
-### Chain Analytics
-- TVL by chain
-- Protocol distribution
-- Chain dominance metrics
-- Cross-chain relationships
-
-### Risk Metrics
-- TVL-based risk scoring
-- Chain diversification analysis
-- Stability assessment
-- Historical volatility tracking
-
-## Development Progress
-
-### ✅ Completed
-- Database schema design and implementation
-- Data collection pipeline
-- Protocol processing system
-- Chain metrics calculation
-- Basic risk analytics
-
-### 🚧 In Progress
-- Dashboard UI development
-- Advanced analytics implementation
-- Visualization components
-- Real-time updates
-
-### 📅 Planned
-- Interactive analytics dashboard
-- Custom metric calculations
-- Historical trend analysis
-- Advanced risk modeling
+### Backend
+- **Database**: Supabase
+- **API**: DeFiLlama Integration
+- **Caching**: Built-in Supabase
 
 ## Getting Started
 
-### Prerequisites
+1. Install dependencies:
 ```bash
-- Node.js 16+
-- npm/yarn
-- Supabase account
+npm install
 ```
 
-### Installation
+2. Set up environment:
 ```bash
-# Clone repository
-git clone https://github.com/DiegoARP/defi-analytics-dashboard.git
-
-# Install dependencies
-cd defi-analytics-dashboard/frontend
-npm install
-
-# Set up environment variables
 cp .env.example .env.local
 # Add your Supabase credentials
 ```
 
-### Running Data Collection
-```bash
-npm run update-data
-```
-
-### Development
+3. Run development server:
 ```bash
 npm run dev
 ```
-
-## Data Update Process
-1. Fetches protocol data from DeFiLlama
-2. Processes in batches of 100 protocols
-3. Calculates risk metrics and health scores
-4. Updates chain analytics
-5. Maintains historical records
 
 ## Contributing
 
@@ -134,29 +62,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
-
-## Next Steps in Development
-
-1. **Data Validation**
-   - Verify data integrity
-   - Check calculation accuracy
-   - Validate relationships
-
-2. **Dashboard Planning**
-   - Define key metrics
-   - Design user interface
-   - Plan interactive features
-
-3. **Frontend Development**
-   - Implement UI components
-   - Create visualizations
-   - Add interactivity
-
-## Contact
-
-[Diego] - [/@]
-
-Project Link: [https://github.com/DiegoARP/defi-analytics-dashboard](https://github.com/yourusername/defi-analytics-dashboard)
+Built with ❤️ for the DeFi community

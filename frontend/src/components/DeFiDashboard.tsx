@@ -166,7 +166,7 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                             <StatCard 
                                 title="Total Value Locked"
-                                value={`$${insights.totalTVL}B`}
+                                value={`$${(timeSeriesData[timeSeriesData.length - 1]?.total_tvl / 1e9).toFixed(2)}B`}
                                 change={2.3}
                                 trend="up"
                                 icon={<DollarSign className="w-6 h-6" />}
@@ -231,7 +231,10 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                             <Card className="lg:col-span-2">
                                 <CardHeader>
                                     <CardTitle>Protocol Categories</CardTitle>
-                                    <CardDescription>TVL distribution across categories</CardDescription>
+                                    <CardDescription className="flex items-center justify-between">
+                                        <span>TVL distribution across categories</span>
+                                        <span className="text-xs font-medium bg-muted px-2 py-1 rounded">Top 15 by TVL</span>
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="h-[400px]">
                                     <CategoryTVLChart data={categoryData} />
@@ -241,7 +244,10 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                             <Card className="lg:col-span-2">
                                 <CardHeader>
                                     <CardTitle>Chain Diversity</CardTitle>
-                                    <CardDescription>Distribution across blockchain networks</CardDescription>
+                                    <CardDescription className="flex items-center justify-between">
+                                        <span>Distribution across blockchain networks</span>
+                                        <span className="text-xs font-medium bg-muted px-2 py-1 rounded">Top 15 by TVL</span>
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="h-[400px]">
                                     <ChainDiversityChart data={chainDiversityData} />
