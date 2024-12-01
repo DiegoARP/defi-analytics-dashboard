@@ -1,3 +1,5 @@
+import { ProtocolComparison } from './charts';
+
 export interface CategoryData {
     category: string;
     protocol_count: number;
@@ -25,9 +27,22 @@ export interface CategoryData {
     risk_level: string;
   }
   
-  export interface DashboardProps {
+  export interface DeFiDashboardProps {
     categoryData: CategoryData[];
     tvlDistributionData: TvlDistributionData[];
     riskDistributionData: RiskDistributionData[];
     chainDiversityData: ChainDiversityData[];
+    timeSeriesData: {
+        date: string;
+        total_tvl: number;
+        protocol_count: number;
+        active_chains: number;
+    }[];
+    enhancedMetrics: {
+        avgTVL: number;
+        growthRate: number;
+        mostActiveChain: string;
+        riskAdjustedTVL: number;
+    } | null;
+    protocols: ProtocolComparison[];
   }

@@ -13,7 +13,8 @@ import {
     CategoryTVLChart,
     TVLDistributionChart,
     RiskDistributionChart,
-    ChainDiversityChart
+    ChainDiversityChart,
+    TimeSeriesChart
 } from './charts/DeFiCharts';
 import { 
     TrendingUp, 
@@ -21,20 +22,29 @@ import {
     BarChart2, 
     Shield, 
     Activity, 
-    DollarSign 
+    DollarSign, 
+    Share2
 } from 'lucide-react';
 import type { 
     CategoryDistribution, 
     TVLDistribution, 
     RiskDistribution, 
-    ChainDiversity 
+    ChainDiversity, 
+    TimeSeriesData, 
+    EnhancedMetrics
 } from '@/types/charts';
+import { useDefiData } from '@/hooks/useDefiData';
+import { ProtocolComparisonCard } from './ProtocolComparison';
+import { LoadingState } from './LoadingState';
+import { ErrorState } from './ErrorState';
 
 export interface DeFiDashboardProps {
     categoryData: CategoryDistribution[];
     tvlDistributionData: TVLDistribution[];
     riskDistributionData: RiskDistribution[];
     chainDiversityData: ChainDiversity[];
+    timeSeriesData: TimeSeriesData[];
+    enhancedMetrics: EnhancedMetrics | null;
 }
 
 // StatCard Component
@@ -80,14 +90,33 @@ const StatCard = ({
     </Card>
 );
 
+// Share button component
+const ShareButton = () => (
+    <button 
+        onClick={() => {
+            navigator.clipboard.writeText(window.location.href);
+            // Could add a toast notification here
+        }}
+        className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-sm text-primary"
+    >
+        <Share2 className="w-4 h-4" />
+        Share
+    </button>
+);
+
 // Main Dashboard Component
 const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
     categoryData = [],
     tvlDistributionData = [],
     riskDistributionData = [],
-    chainDiversityData = []
+    chainDiversityData = [],
+    timeSeriesData = [],
+    enhancedMetrics = null
 }) => {
-    const [timeframe, setTimeframe] = useState('24h');
+    const { data, loading, error, chartTimeframe, setChartTimeframe } = useDefiData();
+
+    if (loading) return <LoadingState />;
+    if (error) return <ErrorState error={error} retry={() => window.location.reload()} />;
 
     // Calculate insights using your existing logic with null checks
     const insights = useMemo(() => {
@@ -120,40 +149,20 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
         };
     }, [categoryData, riskDistributionData]);
 
-    // Add loading state check
-    if (!categoryData?.length || !tvlDistributionData?.length) {
-        return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                    <p className="mt-4">Loading dashboard data...</p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-background p-6">
-            <div className="max-w-[1400px] mx-auto space-y-8">
-                {/* Header */}
-                <div className="flex justify-between items-center">
+        <div className="min-h-screen bg-background p-4 md:p-6">
+            <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-8">
+                {/* Header with share button */}
+                <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight">DeFi Analytics Dashboard</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                            DeFi Analytics Dashboard
+                        </h1>
                         <p className="text-muted-foreground">
                             Real-time insights across protocols and chains
                         </p>
                     </div>
-                    <Select value={timeframe} onValueChange={setTimeframe}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Timeframe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="24h">Last 24 hours</SelectItem>
-                            <SelectItem value="7d">Last 7 days</SelectItem>
-                            <SelectItem value="30d">Last 30 days</SelectItem>
-                            <SelectItem value="all">All time</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <ShareButton />
                 </div>
 
                 {/* Stats Grid */}
@@ -184,6 +193,23 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                     />
                 </div>
 
+                {/* Historical Trends with its own timeframe control */}
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Historical Trends</CardTitle>
+                        <CardDescription>TVL and protocol growth over time</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        <TimeSeriesChart 
+                            data={data.timeSeriesData}
+                            timeframe={chartTimeframe}
+                            onTimeframeChange={setChartTimeframe}
+                            loading={loading}
+                            error={error}
+                        />
+                    </CardContent>
+                </Card>
+
                 {/* Charts Grid */}
                 {categoryData.length > 0 && (
                     <div className="grid gap-6 lg:grid-cols-2">
@@ -213,7 +239,10 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                         <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle>Protocol Categories</CardTitle>
-                                <CardDescription>TVL distribution across categories</CardDescription>
+                                <CardDescription className="flex items-center justify-between">
+                                    <span>TVL distribution across categories</span>
+                                    <span className="text-xs font-medium bg-muted px-2 py-1 rounded">Top 15 by TVL</span>
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="h-[400px]">
                                 <CategoryTVLChart data={categoryData} />
@@ -224,12 +253,17 @@ const DeFiDashboard: React.FC<DeFiDashboardProps> = ({
                         <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle>Chain Diversity</CardTitle>
-                                <CardDescription>Distribution across blockchain networks</CardDescription>
+                                <CardDescription className="flex items-center justify-between">
+                                    <span>Distribution across blockchain networks</span>
+                                    <span className="text-xs font-medium bg-muted px-2 py-1 rounded">Top 15 by TVL</span>
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="h-[400px]">
                                 <ChainDiversityChart data={chainDiversityData} />
                             </CardContent>
                         </Card>
+
+                        <ProtocolComparisonCard protocols={data.protocols} />
                     </div>
                 )}
             </div>
