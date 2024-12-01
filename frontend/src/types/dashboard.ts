@@ -45,4 +45,6 @@ export interface CategoryData {
         riskAdjustedTVL: number;
     } | null;
     protocols: ProtocolComparison[];
+    chartTimeframe: '24h' | '7d' | '30d';
+    setChartTimeframe: (timeframe: '24h' | '7d' | '30d') => void;
   }

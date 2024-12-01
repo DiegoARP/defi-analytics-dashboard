@@ -1,9 +1,8 @@
-'use client';
-
 import React from 'react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
     title: 'DeFi Analytics Dashboard',
     description: 'Real-time insights and analytics across DeFi protocols and chains',
     openGraph: {
@@ -23,5 +22,9 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return children;
+    return (
+        <div className="min-h-screen">
+            {children}
+        </div>
+    );
 }

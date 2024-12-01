@@ -19,19 +19,9 @@ export const TimeSeriesChart: React.FC<{
     data: TimeSeriesData[];
     timeframe: '24h' | '7d' | '30d';
     onTimeframeChange: (timeframe: '24h' | '7d' | '30d') => void;
-    loading?: boolean;
-    error?: Error | null;
-}> = ({ data, timeframe, onTimeframeChange, loading, error }) => {
-    if (error) {
-        return (
-            <div className="h-full flex items-center justify-center">
-                <div className="text-center text-destructive">
-                    <p className="font-medium">Failed to load chart data</p>
-                    <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
-                </div>
-            </div>
-        );
-    }
+    isLoading?: boolean;
+}> = ({ data, timeframe, onTimeframeChange, isLoading }) => {
+    const showLoading = isLoading && (!data || data.length === 0);
 
     if (!data?.length) {
         return (
@@ -43,8 +33,8 @@ export const TimeSeriesChart: React.FC<{
 
     return (
         <div className="h-full relative">
-            {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-20">
+            {showLoading && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
             )}
