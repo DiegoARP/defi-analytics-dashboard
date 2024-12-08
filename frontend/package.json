@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "update-data": "NODE_ENV=development ts-node -r tsconfig-paths/register --files --project tsconfig.scripts.json scripts/update-data.ts",
+    "update-data": "ts-node -P tsconfig.scripts.json scripts/update-data.ts",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next node_modules && npm install",
     "test-data": "ts-node --project tsconfig.test.json src/utils/test-data.ts"
@@ -36,7 +36,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@types/node": "^20.10.3",
+    "@types/node": "^20.17.9",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/tailwindcss": "^3.0.11",

@@ -28,8 +28,6 @@ export interface ChainDiversity {
 export interface TimeSeriesData {
     date: string;
     total_tvl: number;
-    protocol_count: number;
-    active_chains: number;
 }
 
 export interface EnhancedMetrics {

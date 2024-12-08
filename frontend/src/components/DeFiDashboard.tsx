@@ -38,7 +38,8 @@ import { ErrorState } from './ErrorState';
 import { ProtocolComparisonCard } from './ProtocolComparison';
 import { DashboardHeader } from './DashboardHeader';
 import { InfoPanel } from './InfoPanel';
-import { NewsFeed } from './NewsFeed';
+import { NewsFeed } from '@/components/NewsFeed';
+import { ProtocolGrowthChart } from './ProtocolGrowthChart';
 
 export interface DeFiDashboardProps {
     categoryData: CategoryDistribution[];
@@ -49,6 +50,20 @@ export interface DeFiDashboardProps {
     enhancedMetrics: EnhancedMetrics | null;
     protocols: any[];
 }
+
+// Add this helper function for number formatting
+const formatNumber = (num: number): string => {
+  if (num >= 1e9) {
+    return `${(num / 1e9).toFixed(2)}B`;
+  }
+  if (num >= 1e6) {
+    return `${(num / 1e6).toFixed(2)}M`;
+  }
+  if (num >= 1e3) {
+    return `${(num / 1e3).toFixed(2)}K`;
+  }
+  return num.toFixed(2);
+};
 
 // StatCard Component
 const StatCard = ({ 
@@ -124,6 +139,15 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
     setChartTimeframe,
     historicalLoading = false,
 }) => {
+    console.log('Total protocols:', protocols.length);
+    console.log('Protocols with volume:', protocols.filter(p => p.volume24h > 0).length);
+    console.log('Top 5 by volume:', protocols
+        .filter(p => p.volume24h > 0)
+        .sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0))
+        .slice(0, 5)
+        .map(p => ({name: p.name, volume: p.volume24h}))
+    );
+
     // Add back useMemo for insights
     const insights = useMemo(() => {
         const totalTVL = categoryData.reduce((sum, cat) => sum + cat.total_tvl, 0);
@@ -254,7 +278,74 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                                 </CardContent>
                             </Card>
 
-                            <ProtocolComparisonCard protocols={protocols} />
+                            <div className="lg:col-span-2 grid gap-6 lg:grid-cols-2">
+                                <ProtocolComparisonCard protocols={protocols} />
+                                <div className="grid gap-6">
+                                    <Card>
+                                        <CardHeader className="flex">
+                                            <div className="inline-block">
+                                                <div className="inline-flex flex-col px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md">
+                                                    <CardTitle className="text-primary text-sm">
+                                                        Yield Overview
+                                                    </CardTitle>
+                                                    <CardDescription className="text-primary/60 text-xs">
+                                                        Top protocols by APY
+                                                    </CardDescription>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {protocols
+                                                    .sort((a, b) => (b.apy || 0) - (a.apy || 0))
+                                                    .slice(0, 5)
+                                                    .map((protocol, index) => (
+                                                        <div key={index} className="flex justify-between items-center">
+                                                            <span className="font-medium px-3 py-1 bg-secondary/50 rounded-md">
+                                                                {protocol.name}
+                                                            </span>
+                                                            <span className="text-emerald-500 px-3 py-1 bg-emerald-500/10 rounded-md">
+                                                                {(protocol.apy || 0).toFixed(2)}% APY
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader className="flex">
+                                            <div className="inline-block">
+                                                <div className="inline-flex flex-col px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md">
+                                                    <CardTitle className="text-primary text-sm">
+                                                        Volume Leaders
+                                                    </CardTitle>
+                                                    <CardDescription className="text-primary/60 text-xs">
+                                                        24h trading volume
+                                                    </CardDescription>
+                                                </div>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-3">
+                                                {protocols
+                                                    .filter(p => p.volume24h != null && p.volume24h > 0)
+                                                    .sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0))
+                                                    .slice(0, 5)
+                                                    .map((protocol, index) => (
+                                                        <div key={index} className="flex justify-between items-center">
+                                                            <span className="font-medium px-3 py-1 bg-secondary/50 rounded-md">
+                                                                {protocol.name}
+                                                            </span>
+                                                            <span className="text-blue-500 px-3 py-1 bg-blue-500/10 rounded-md">
+                                                                ${formatNumber(protocol.volume24h)}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

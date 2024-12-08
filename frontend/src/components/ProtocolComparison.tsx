@@ -85,6 +85,31 @@ export const ProtocolComparisonCard: React.FC<ProtocolComparisonProps> = ({ prot
             <CardContent className="h-[400px]">
                 <ProtocolComparisonChart data={comparisonData} />
             </CardContent>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Understanding the Metrics</h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <span className="w-20">TVL:</span>
+                        <span>Total Value Locked in the protocol</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-20">24h Volume:</span>
+                        <span>Trading volume in the last 24 hours</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-20">Risk Score:</span>
+                        <span>Protocol safety rating (0-100)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-20">APY:</span>
+                        <span>Annual Percentage Yield</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-20">7d Change:</span>
+                        <span>TVL change over the last week</span>
+                    </div>
+                </div>
+            </div>
         </Card>
     );
 }; 

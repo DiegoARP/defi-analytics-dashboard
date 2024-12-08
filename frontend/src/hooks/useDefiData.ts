@@ -23,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
     global: {
         fetch: fetch.bind(globalThis)
     }
-});
+});                                                                               
 
 // Immediate connection test
 (async () => {
@@ -123,7 +123,6 @@ export function useDefiData() {
                     category,
                     tvl,
                     tvl_7d,
-                    volume_24h,
                     apy,
                     chain_data,
                     health_metrics
@@ -131,6 +130,26 @@ export function useDefiData() {
 
             if (protocolError) throw protocolError;
             console.log('Fetched protocols:', protocols?.length);
+
+            // Fetch volumes separately
+            const { data: volumeData, error: volumeError } = await supabase
+                .from('protocol_volumes')
+                .select('*')
+                .order('volume_24h', { ascending: false });
+
+            if (volumeError) {
+                console.error('Failed to fetch volumes:', volumeError);
+            }
+
+            // Create volume map with non-zero values only
+            const volumeMap = (volumeData || []).reduce((acc: {[key: string]: number}, v) => {
+                if (v.volume_24h > 0) {
+                    acc[v.protocol_name.toLowerCase()] = Number(v.volume_24h);
+                }
+                return acc;
+            }, {});
+
+            console.log('Volume data loaded:', volumeData?.length, 'records');
 
             // Process category distribution
             const categoryMap = new Map<string, CategoryDistribution>();
@@ -266,14 +285,19 @@ export function useDefiData() {
                     const riskLevel = p.health_metrics?.risk_level || 'Medium';
                     const riskScore = riskLevel === 'Low' ? 80 : riskLevel === 'Medium' ? 50 : 30;
                     const currentTvl = Number(p.tvl) || 0;
+                    const tvl7dAgo = Number(p.tvl_7d) || currentTvl;
+                    
+                    // Get volume directly from volumeData instead of volumeMap
+                    const volumeRecord = volumeData?.find(v => v.protocol_name === p.name);
+                    const volume24h = volumeRecord ? Number(volumeRecord.volume_24h) : 0;
                     
                     return {
                         name: p.name,
                         tvl: currentTvl,
-                        volume24h: currentTvl * 0.05,  // Estimate: 5% of TVL
+                        volume24h: volume24h,  // Use the found volume
                         riskScore,
-                        apy: Math.random() * 20,       // Random APY between 0-20%
-                        change7d: (Math.random() * 20) - 10  // Random change between -10% and +10%
+                        apy: Number(p.apy) || 0,
+                        change7d: Number(((currentTvl - tvl7dAgo) / tvl7dAgo * 100).toFixed(2))
                     };
                 }),
                 chartTimeframe,

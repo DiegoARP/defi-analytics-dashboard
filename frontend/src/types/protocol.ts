@@ -30,6 +30,7 @@ export interface Protocol {
     change_1d?: number;
     change_7d?: number;
     chains: string[];
+    volume24h?: number;
 }
 
 export interface HealthMetrics {
