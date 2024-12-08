@@ -284,11 +284,11 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                                     <Card>
                                         <CardHeader className="flex">
                                             <div className="inline-block">
-                                                <div className="inline-flex flex-col px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md">
-                                                    <CardTitle className="text-primary text-sm">
+                                                <div className="inline-flex flex-col gap-0.5 px-3 py-2 bg-gradient-to-r from-secondary/30 to-secondary/10 rounded-md">
+                                                    <CardTitle className="text-sm font-semibold">
                                                         Yield Overview
                                                     </CardTitle>
-                                                    <CardDescription className="text-primary/60 text-xs">
+                                                    <CardDescription className="text-xs opacity-75">
                                                         Top protocols by APY
                                                     </CardDescription>
                                                 </div>
@@ -315,11 +315,11 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                                     <Card>
                                         <CardHeader className="flex">
                                             <div className="inline-block">
-                                                <div className="inline-flex flex-col px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-md">
-                                                    <CardTitle className="text-primary text-sm">
+                                                <div className="inline-flex flex-col gap-0.5 px-3 py-2 bg-gradient-to-r from-secondary/30 to-secondary/10 rounded-md">
+                                                    <CardTitle className="text-sm font-semibold">
                                                         Volume Leaders
                                                     </CardTitle>
-                                                    <CardDescription className="text-primary/60 text-xs">
+                                                    <CardDescription className="text-xs opacity-75">
                                                         24h trading volume
                                                     </CardDescription>
                                                 </div>
