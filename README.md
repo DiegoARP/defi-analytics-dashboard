@@ -24,6 +24,30 @@ A real-time analytics platform for monitoring and analyzing the decentralized fi
 - 🎯 Category insights
 - 💹 Growth indicators
 
+## Dashboard Features
+
+### Data Display
+- Protocol Volume Leaders (24h trading volume)
+- Yield Overview (Top protocols by APY)
+- Protocol Comparison Tool
+- Chain Diversity Metrics
+- TVL Distribution
+- Risk Analysis
+
+### Data Sources
+- Protocol data from DeFiLlama API
+- Volume data updated from DeFiLlama DEX endpoint
+- Data refresh via `npm run update-data`
+
+### Database Tables
+- `protocols`: Main protocol information
+- `protocol_volumes`: 24h trading volumes
+- `chain_metrics`: Chain-specific metrics
+- `protocol_tvl_history`: Historical TVL data
+
+### Updating Data
+To refresh dashboard data:
+
 ## Tech Stack
 
 ### Frontend
