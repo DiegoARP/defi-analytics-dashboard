@@ -48,6 +48,31 @@ A real-time analytics platform for monitoring and analyzing the decentralized fi
 ### Updating Data
 To refresh dashboard data:
 
+```bash
+# Install dependencies if not already done
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Add your Supabase credentials to .env.local
+
+# Run the update script
+npm run update-data
+```
+
+This will:
+1. Fetch latest protocol data from DeFiLlama
+2. Update protocol volumes and metrics
+3. Refresh chain diversity data
+4. Update the database tables
+
+Note: The data update process typically takes a few minutes to complete. You can monitor the progress in the console output.
+
+### Data Refresh Schedule
+- Protocol data: Updated on each run
+- Volume data: 24h trading volumes
+- Chain metrics: Calculated from latest protocol data
+
 ## Tech Stack
 
 ### Frontend
