@@ -183,6 +183,40 @@ const DeFiDashboard: React.FC<DeFiDashboardProps & {
                         <div className="hidden lg:block">
                             <NewsFeed />
                         </div>
+                        <div className="hidden lg:block">
+                            <Card>
+                                <CardHeader className="flex">
+                                    <div className="inline-block">
+                                        <div className="inline-flex flex-col gap-0.5 px-3 py-2 bg-gradient-to-r from-secondary/30 to-secondary/10 rounded-md">
+                                            <CardTitle className="text-sm font-semibold">
+                                                Top Daily Gainers
+                                            </CardTitle>
+                                            <CardDescription className="text-xs opacity-75">
+                                                Best performing assets (24h)
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {protocols
+                                            .filter(p => p.priceChange24h != null && p.priceChange24h > 0)
+                                            .sort((a, b) => (b.priceChange24h || 0) - (a.priceChange24h || 0))
+                                            .slice(0, 5)
+                                            .map((protocol, index) => (
+                                                <div key={index} className="flex justify-between items-center">
+                                                    <span className="font-medium px-3 py-1 bg-secondary/50 rounded-md">
+                                                        {protocol.name}
+                                                    </span>
+                                                    <span className="text-emerald-500 px-3 py-1 bg-emerald-500/10 rounded-md">
+                                                        +{(protocol.priceChange24h || 0).toFixed(2)}%
+                                                    </span>
+                                                </div>
+                                            ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
                     
                     <div className="space-y-6">
