@@ -30,7 +30,10 @@ const nextConfig = {
         '.tsx': ['swc-loader'],
       },
     },
-  }
+  },
+  env: {
+    CRON_SECRET: process.env.CRON_SECRET,
+  },
 }
 
 module.exports = nextConfig

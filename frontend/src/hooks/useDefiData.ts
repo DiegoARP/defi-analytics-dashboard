@@ -61,16 +61,26 @@ export function useDefiData() {
         return date;
     };
 
-    const [chartTimeframe, setChartTimeframe] = useState<'24h' | '7d' | '30d'>('30d');
+    const [chartTimeframe, setChartTimeframe] = useState<'24h' | '7d' | '30d'>('24h');
     const [data, setData] = useState<DeFiDashboardProps | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const [historicalLoading, setHistoricalLoading] = useState(false);
 
-    // Fetch base data only once
     useEffect(() => {
-        fetchBaseData();
-    }, []);
+        console.log('useDefiData hook initialized');
+        async function fetchData() {
+            try {
+                console.log('Fetching data...');
+                await fetchBaseData();
+                console.log('Data fetched successfully');
+            } catch (err) {
+                console.error('Error in fetchData:', err);
+                setError(err as Error);
+            }
+        }
+        fetchData();
+    }, [chartTimeframe]);
 
     // Fetch historical data when timeframe changes
     useEffect(() => {
